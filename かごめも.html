@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>買い物リストアプリ</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2canvas for image generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- ================================================================= -->
+    <!-- 【CSS 分割ガイド】                                               -->
+    <!-- 以下の <style> ～ </style> の中身を 'style.css' に切り出し、       -->
+    <!-- <head> 内で <link rel="stylesheet" href="style.css"> として読込可能 -->
+    <!-- ================================================================= -->
+    <style>
+        @font-face {
+            font-family: 'CustomFont';
+            src: url('font01.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        body, input, select, button, textarea, table {
+            font-family: 'CustomFont', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+        }
+
+        /* スクロールバーのカスタマイズ */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        /* 印刷・キャプチャ用の表示調整 */
+        @media print {
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen pb-12">
+
+    <!-- Header with Banner Image inside Blue Container -->
+    <header class="bg-blue-600 text-white shadow-md mb-6">
+        <div class="max-w-4xl mx-auto px-4 pt-4">
+            <!-- Banner Image Container inside Blue Box -->
+            <div class="w-full overflow-hidden flex justify-center items-center mb-2">
+                <!-- 画像の元サイズ・縦横比を保ち、青い枠内に角丸で配置 -->
+                <img src="header.png" alt="買い物リスト Header" class="max-w-full h-auto block rounded-lg" onerror="this.style.display='none'; document.getElementById('fallback-title').classList.remove('hidden');">
+                <div id="fallback-title" class="hidden py-4 text-center text-2xl font-bold text-white">買い物リスト</div>
+            </div>
+
+            <!-- Navigation Header Buttons -->
+            <div class="flex justify-center sm:justify-start gap-2 pt-2">
+                <button id="nav-list" class="px-8 py-2.5 rounded-t-lg bg-white text-blue-600 font-bold shadow transition-colors text-base">
+                    <i class="fas fa-list-check mr-2"></i>リスト
+                </button>
+                <button id="nav-history" class="px-8 py-2.5 rounded-t-lg bg-blue-700 hover:bg-blue-500 text-white font-bold transition-colors text-base">
+                    <i class="fas fa-history mr-2"></i>履歴
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-3 sm:px-6">
+        
+        <!-- ==================== LIST VIEW ==================== -->
+        <section id="view-list" class="block">
+            
+            <!-- List Tabs Header -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 mb-3 border-b-2 border-slate-300 no-print" id="list-tabs-container">
+                <!-- Tabs generated dynamically via JS -->
+            </div>
+
+            <!-- List Content Area (Target for html2canvas export) -->
+            <div id="capture-area" class="bg-white rounded-xl shadow-md border border-slate-200 p-4 sm:p-6 mb-6">
+                
+                <!-- List Name & Budget Settings -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-slate-100">
+                    <div class="w-full sm:w-1/2">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">リスト名</label>
+                        <input type="text" id="current-list-name" class="w-full text-xl font-bold border-b-2 border-blue-200 focus:border-blue-600 outline-none px-2 py-1 transition-colors bg-transparent text-slate-800" placeholder="リスト名を入力">
+                    </div>
+                    <div class="w-full sm:w-1/3">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">予算 (円)</label>
+                        <input type="number" id="current-list-budget" class="w-full text-lg text-right font-bold border-b-2 border-blue-200 focus:border-blue-600 outline-none px-2 py-1 transition-colors bg-transparent text-slate-800" placeholder="0" min="0">
+                    </div>
+                </div>
+
+                <!-- Budget & Total Summary Banner -->
+                <div class="bg-slate-50 rounded-xl p-4 mb-6 flex flex-wrap justify-between items-center gap-2 border border-slate-200 shadow-inner">
+                    <div class="flex-1 text-center border-r border-slate-200 last:border-0">
+                        <div class="text-xs text-slate-500 font-bold mb-1">予算</div>
+                        <div class="text-lg font-bold text-slate-700" id="summary-budget">0円</div>
+                    </div>
+                    <div class="flex-1 text-center border-r border-slate-200 last:border-0">
+                        <div class="text-xs text-slate-500 font-bold mb-1">合計金額</div>
+                        <div class="text-xl font-extrabold text-blue-600" id="summary-total">0円</div>
+                    </div>
+                    <div class="flex-1 text-center">
+                        <div class="text-xs text-slate-500 font-bold mb-1" id="summary-diff-label">残り</div>
+                        <div class="text-lg font-bold text-green-600" id="summary-diff">0円</div>
+                    </div>
+                </div>
+
+                <!-- Items Table -->
+                <div class="overflow-x-auto border border-slate-300 rounded-lg mb-6">
+                    <table class="w-full text-left border-collapse whitespace-nowrap min-w-[550px]">
+                        <thead>
+                            <tr class="bg-slate-200 text-slate-700 text-sm font-bold">
+                                <th class="py-3 px-3 w-12 text-center border-b border-r border-slate-300">✓</th>
+                                <th class="py-3 px-4 border-b border-r border-slate-300">商品名</th>
+                                <th class="py-3 px-4 w-32 border-b border-r border-slate-300 text-right">価格</th>
+                                <th class="py-3 px-4 w-24 border-b border-r border-slate-300 text-center">個数</th>
+                                <th class="py-3 px-4 w-32 border-b border-r border-slate-300 text-right">小計</th>
+                                <th class="py-3 px-3 w-12 border-b border-slate-300 text-center no-print">×</th>
+                            </tr>
+                        </thead>
+                        <tbody id="items-tbody">
+                            <!-- Rows generated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Add Item Button (Centered below the table as requested) -->
+                <div class="flex justify-center mb-6 no-print">
+                    <button id="btn-add-item" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-full shadow-md transition-all transform hover:scale-105 flex items-center gap-2 text-base">
+                        <i class="fas fa-plus text-lg"></i>
+                        <span>商品を追加</span>
+                    </button>
+                </div>
+
+                <!-- Reset Button (Bottom of list container) -->
+                <div class="flex justify-end border-t border-slate-100 pt-3 no-print">
+                    <button id="btn-reset-list" class="text-red-500 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-lg text-sm font-bold flex items-center transition-colors">
+                        <i class="fas fa-rotate-left mr-2"></i>リストをリセット
+                    </button>
+                </div>
+            </div>
+
+            <!-- Export / Save Action Buttons -->
+            <div class="flex flex-col sm:flex-row justify-end gap-3 no-print">
+                <button id="btn-save-image" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-3 rounded-xl font-bold flex justify-center items-center transition-colors shadow-sm">
+                    <i class="fas fa-camera mr-2"></i>画像として保存
+                </button>
+                <button id="btn-save-history" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-bold flex justify-center items-center shadow-md transition-all transform hover:-translate-y-0.5">
+                    <i class="fas fa-bookmark mr-2"></i>履歴として保存
+                </button>
+            </div>
+        </section>
+
+        <!-- ==================== HISTORY VIEW ==================== -->
+        <section id="view-history" class="hidden">
+            
+            <!-- Aggregation Summary (Week, Month, Year) -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-center">
+                    <div class="text-xs text-slate-500 font-bold mb-1"><i class="fas fa-calendar-week mr-1 text-blue-500"></i>週間合計金額</div>
+                    <div class="text-2xl font-extrabold text-slate-800" id="hist-sum-week">0円</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-center">
+                    <div class="text-xs text-slate-500 font-bold mb-1"><i class="fas fa-calendar-alt mr-1 text-green-500"></i>月間合計金額</div>
+                    <div class="text-2xl font-extrabold text-slate-800" id="hist-sum-month">0円</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-center">
+                    <div class="text-xs text-slate-500 font-bold mb-1"><i class="fas fa-calendar mr-1 text-amber-500"></i>年間合計金額</div>
+                    <div class="text-2xl font-extrabold text-slate-800" id="hist-sum-year">0円</div>
+                </div>
+            </div>
+
+            <!-- Search and Filter Panel -->
+            <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-200 mb-6">
+                <h3 class="font-bold text-slate-700 mb-3 flex items-center"><i class="fas fa-filter mr-2 text-blue-600"></i>絞り込み・検索</h3>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Search Text -->
+                    <div class="lg:col-span-2">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">🔍 リスト名・商品名を検索</label>
+                        <input type="text" id="filter-text" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="キーワードを入力">
+                    </div>
+                    
+                    <!-- Filter Year/Month -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">年</label>
+                        <select id="filter-year" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-white">
+                            <option value="">すべて</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">月</label>
+                        <select id="filter-month" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-white">
+                            <option value="">すべて</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Filter Date Range -->
+                    <div class="lg:col-span-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 border-t border-slate-100 pt-3 mt-1">
+                        <label class="text-xs font-bold text-slate-500 whitespace-nowrap">期間指定:</label>
+                        <input type="date" id="filter-date-from" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                        <span class="text-slate-400">～</span>
+                        <input type="date" id="filter-date-to" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                        
+                        <button id="btn-clear-filters" class="mt-2 sm:mt-0 sm:ml-auto text-xs text-blue-600 hover:text-blue-800 font-bold underline">
+                            条件をクリア
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Section Header & Global Action -->
+            <div class="flex justify-between items-center mb-4 px-1">
+                <h2 class="text-lg font-bold text-slate-800">保存された履歴</h2>
+                <button id="btn-delete-all-history" class="text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-red-200">
+                    全履歴削除
+                </button>
+            </div>
+
+            <!-- History Cards List Container -->
+            <div id="history-container" class="space-y-3">
+                <!-- History items generated dynamically -->
+            </div>
+            
+            <!-- Empty State Message -->
+            <div id="history-empty" class="hidden text-center py-12 text-slate-400 bg-white rounded-xl border border-slate-200 border-dashed">
+                <i class="fas fa-folder-open text-3xl mb-2"></i>
+                <p>条件に一致する履歴がありません。</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Custom Modal for Delete / Reset Confirmations -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-100 transition-transform">
+            <div class="p-6 text-center">
+                <div class="w-14 h-14 rounded-full bg-red-100 text-red-500 flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <p id="confirm-message" class="text-slate-800 font-bold text-base mb-6 whitespace-pre-line">本当に実行しますか？</p>
+                <div class="flex gap-3">
+                    <button id="confirm-btn-cancel" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold transition-colors">
+                        キャンセル
+                    </button>
+                    <button id="confirm-btn-ok" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold transition-colors">
+                        削除
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- 【JavaScript 分割ガイド】                                        -->
+    <!-- 以下の <script> ～ </script> の中身を 'script.js' に切り出し、     -->
+    <!-- <body> の最下部で <script src="script.js"></script> として読込可能 -->
+    <!-- ================================================================= -->
+    <script>
+        // Utilities
+        const generateId = () => 'id_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+        const formatCurrency = (amount) => {
+            if (amount === '' || amount === null || isNaN(amount)) return '0円';
+            return new Intl.NumberFormat('ja-JP').format(amount) + '円';
+        };
+        const formatDate = (timestamp) => {
+            const d = new Date(timestamp);
+            return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+        };
+
+        // Application State
+        let state = {
+            activeTab: 'list',
+            currentListId: null,
+            lists: [],
+            history: []
+        };
+
+        const LOCAL_STORAGE_KEY = 'shopping_app_data_v2';
+
+        // Application Initialization
+        function initApp() {
+            loadState();
+            
+            if (state.lists.length === 0) {
+                createNewList('新しいリスト');
+            } else if (!state.currentListId || !state.lists.find(l => l.id === state.currentListId)) {
+                state.currentListId = state.lists[0].id;
+            }
+
+            initEventHandlers();
+            populateFilterOptions();
+            switchTab(state.activeTab);
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (saved) {
+                try {
+                    state = JSON.parse(saved);
+                    if (!state.lists) state.lists = [];
+                    if (!state.history) state.history = [];
+                } catch (e) {
+                    console.error("Failed to parse local storage", e);
+                }
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
+        }
+
+        let confirmResolve = null;
+
+        function showConfirm(message, okText = "削除", okColorClass = "bg-red-600") {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('confirm-modal');
+                const msgEl = document.getElementById('confirm-message');
+                const btnOk = document.getElementById('confirm-btn-ok');
+                
+                msgEl.textContent = message;
+                btnOk.textContent = okText;
+                btnOk.className = `flex-1 ${okColorClass} hover:opacity-90 text-white py-3 rounded-xl font-bold transition-colors`;
+
+                modal.classList.remove('hidden');
+                confirmResolve = resolve;
+            });
+        }
+
+        document.getElementById('confirm-btn-cancel').addEventListener('click', () => {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            if (confirmResolve) confirmResolve(false);
+        });
+
+        document.getElementById('confirm-btn-ok').addEventListener('click', () => {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            if (confirmResolve) confirmResolve(true);
+        });
+
+        function switchTab(tabName) {
+            state.activeTab = tabName;
+            const btnList = document.getElementById('nav-list');
+            const btnHistory = document.getElementById('nav-history');
+            const viewList = document.getElementById('view-list');
+            const viewHistory = document.getElementById('view-history');
+
+            if (tabName === 'list') {
+                btnList.className = "px-8 py-2.5 rounded-t-lg bg-white text-blue-600 font-bold shadow transition-colors text-base";
+                btnHistory.className = "px-8 py-2.5 rounded-t-lg bg-blue-700 hover:bg-blue-500 text-white font-bold transition-colors text-base";
+                
+                viewList.classList.remove('hidden');
+                viewHistory.classList.add('hidden');
+                
+                renderListUI();
+            } else {
+                btnHistory.className = "px-8 py-2.5 rounded-t-lg bg-white text-blue-600 font-bold shadow transition-colors text-base";
+                btnList.className = "px-8 py-2.5 rounded-t-lg bg-blue-700 hover:bg-blue-500 text-white font-bold transition-colors text-base";
+                
+                viewHistory.classList.remove('hidden');
+                viewList.classList.add('hidden');
+                
+                renderHistoryUI();
+            }
+            saveState();
+        }
+
+        document.getElementById('nav-list').addEventListener('click', () => switchTab('list'));
+        document.getElementById('nav-history').addEventListener('click', () => switchTab('history'));
+
+        function getCurrentList() {
+            return state.lists.find(l => l.id === state.currentListId);
+        }
+
+        // Requirements: Create empty initial fields for price and quantity
+        function createEmptyItem() {
+            return { 
+                id: generateId(), 
+                name: '', 
+                price: '',    // 初期状態は空白
+                quantity: '', // 初期状態は空白
+                checked: false 
+            };
+        }
+
+        function createNewList(name = '名称未設定') {
+            const newList = {
+                id: generateId(),
+                name: name,
+                budget: '',
+                items: [createEmptyItem()],
+                createdAt: Date.now()
+            };
+            
+            state.lists.push(newList);
+            state.currentListId = newList.id;
+            saveState();
+            if (state.activeTab === 'list') renderListUI();
+        }
+
+        async function deleteList(listId) {
+            if (state.lists.length <= 1) {
+                return; // 最後の1つの場合は削除不可
+            }
+            const confirm = await showConfirm('このリストを削除しますか？');
+            if (confirm) {
+                state.lists = state.lists.filter(l => l.id !== listId);
+                if (state.currentListId === listId) {
+                    state.currentListId = state.lists[0].id;
+                }
+                saveState();
+                renderListUI();
+            }
+        }
+
+        function renderListTabs() {
+            const container = document.getElementById('list-tabs-container');
+            container.innerHTML = '';
+            
+            state.lists.forEach(list => {
+                const isActive = list.id === state.currentListId;
+                const tab = document.createElement('div');
+                tab.className = `flex items-center group cursor-pointer px-4 py-2 rounded-t-xl border-t border-l border-r border-slate-300 transition-all whitespace-nowrap ${
+                    isActive ? 'bg-white text-blue-600 font-bold border-b-0 -mb-[3px] z-10 shadow-sm' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                }`;
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = list.name || '名称未設定';
+                nameSpan.className = 'mr-2 pointer-events-none text-sm';
+                
+                tab.appendChild(nameSpan);
+
+                if (state.lists.length > 1) {
+                    const delBtn = document.createElement('button');
+                    delBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    delBtn.className = `text-xs p-1 rounded-full hover:bg-red-100 hover:text-red-500 transition-colors ${
+                        isActive ? 'text-slate-400' : 'text-slate-400 opacity-0 group-hover:opacity-100'
+                    }`;
+                    delBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteList(list.id);
+                    };
+                    tab.appendChild(delBtn);
+                }
+
+                tab.onclick = () => {
+                    state.currentListId = list.id;
+                    saveState();
+                    renderListUI();
+                };
+
+                container.appendChild(tab);
+            });
+
+            // Add List Tab Button ("＋")
+            const addBtn = document.createElement('button');
+            addBtn.innerHTML = '<i class="fas fa-plus"></i>';
+            addBtn.title = '新しいリストを追加';
+            addBtn.className = 'px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors ml-1 font-bold';
+            addBtn.onclick = () => createNewList(`リスト${state.lists.length + 1}`);
+            container.appendChild(addBtn);
+        }
+
+        function calculateCurrentList() {
+            const list = getCurrentList();
+            if (!list) return;
+
+            let total = 0;
+            list.items.forEach(item => {
+                const p = Number(item.price) || 0;
+                const q = Number(item.quantity) || 0;
+                total += p * q;
+            });
+
+            const budgetNum = list.budget === '' ? null : Number(list.budget);
+            
+            document.getElementById('summary-budget').textContent = budgetNum === null ? '未設定' : formatCurrency(budgetNum);
+            document.getElementById('summary-total').textContent = formatCurrency(total);
+            
+            const diffEl = document.getElementById('summary-diff');
+            const diffLabelEl = document.getElementById('summary-diff-label');
+            
+            if (budgetNum === null) {
+                diffLabelEl.textContent = '差額';
+                diffEl.textContent = '-';
+                diffEl.className = 'text-lg font-bold text-slate-500';
+            } else {
+                const diff = budgetNum - total;
+                if (diff < 0) {
+                    diffLabelEl.textContent = '超過';
+                    diffEl.textContent = formatCurrency(Math.abs(diff));
+                    diffEl.className = 'text-lg font-bold text-red-600';
+                } else {
+                    diffLabelEl.textContent = '残り';
+                    diffEl.textContent = formatCurrency(diff);
+                    diffEl.className = 'text-lg font-bold text-green-600';
+                }
+            }
+        }
+
+        function renderListUI() {
+            renderListTabs();
+            
+            const list = getCurrentList();
+            if (!list) return;
+
+            const nameInput = document.getElementById('current-list-name');
+            const budgetInput = document.getElementById('current-list-budget');
+            
+            nameInput.value = list.name || '';
+            budgetInput.value = list.budget !== undefined ? list.budget : '';
+
+            renderItemsTable();
+            calculateCurrentList();
+        }
+
+        function renderItemsTable() {
+            const list = getCurrentList();
+            const tbody = document.getElementById('items-tbody');
+            tbody.innerHTML = '';
+
+            list.items.forEach((item) => {
+                const priceVal = item.price !== undefined ? item.price : '';
+                const qtyVal = item.quantity !== undefined ? item.quantity : '';
+                
+                const p = Number(priceVal) || 0;
+                const q = Number(qtyVal) || 0;
+                const subtotal = p * q;
+                
+                const tr = document.createElement('tr');
+                tr.className = `border-b border-slate-200 transition-colors hover:bg-slate-50 ${item.checked ? 'bg-blue-50/40' : ''}`;
+                tr.setAttribute('data-id', item.id);
+                
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 text-center border-r border-slate-200">
+                        <input type="checkbox" class="w-5 h-5 cursor-pointer item-check accent-blue-600 rounded" data-id="${item.id}" ${item.checked ? 'checked' : ''}>
+                    </td>
+                    <td class="py-2.5 px-2 border-r border-slate-200">
+                        <input type="text" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 outline-none transition-colors item-name font-medium ${item.checked ? 'text-slate-400 line-through' : 'text-slate-800'}" data-id="${item.id}" value="${escapeHtml(item.name)}" placeholder="商品名を入力">
+                    </td>
+                    <td class="py-2.5 px-2 border-r border-slate-200">
+                        <input type="number" min="0" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 outline-none text-right transition-colors item-price" data-id="${item.id}" value="${priceVal}" placeholder="0">
+                    </td>
+                    <td class="py-2.5 px-2 border-r border-slate-200">
+                        <input type="number" min="1" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 outline-none text-center transition-colors item-quantity" data-id="${item.id}" value="${qtyVal}" placeholder="0">
+                    </td>
+                    <td class="py-2.5 px-4 text-right border-r border-slate-200 font-bold text-slate-700 item-subtotal" id="subtotal-${item.id}">
+                        ${formatCurrency(subtotal)}
+                    </td>
+                    <td class="py-2.5 px-2 text-center no-print">
+                        <button class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors btn-delete-item" data-id="${item.id}" title="削除">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function escapeHtml(unsafe) {
+            return (unsafe || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function initEventHandlers() {
+            // Header Name & Budget input handlers
+            document.getElementById('current-list-name').addEventListener('input', (e) => {
+                const list = getCurrentList();
+                if (list) {
+                    list.name = e.target.value;
+                    saveState();
+                    renderListTabs();
+                }
+            });
+
+            document.getElementById('current-list-budget').addEventListener('input', (e) => {
+                const list = getCurrentList();
+                if (list) {
+                    list.budget = e.target.value;
+                    saveState();
+                    calculateCurrentList();
+                }
+            });
+
+            // Add Item button (Centered below table)
+            document.getElementById('btn-add-item').addEventListener('click', () => {
+                const list = getCurrentList();
+                if (list) {
+                    list.items.push(createEmptyItem());
+                    saveState();
+                    renderItemsTable();
+                    calculateCurrentList();
+                    
+                    // Focus on newly created item's name field
+                    const inputs = document.querySelectorAll('.item-name');
+                    if (inputs.length > 0) {
+                        inputs[inputs.length - 1].focus();
+                    }
+                }
+            });
+
+            // Reset List button (With confirmation modal)
+            document.getElementById('btn-reset-list').addEventListener('click', async () => {
+                const confirm = await showConfirm('現在のリストの商品をすべて削除しますか？', 'リセット', 'bg-red-600');
+                if (confirm) {
+                    const list = getCurrentList();
+                    if (list) {
+                        list.items = [createEmptyItem()];
+                        saveState();
+                        renderItemsTable();
+                        calculateCurrentList();
+                    }
+                }
+            });
+
+            // Table Event Delegation (Input changes, Checkbox toggle, Delete item)
+            document.getElementById('items-tbody').addEventListener('input', (e) => {
+                const target = e.target;
+                const id = target.getAttribute('data-id');
+                const list = getCurrentList();
+                if (!list || !id) return;
+                
+                const item = list.items.find(i => i.id === id);
+                if (!item) return;
+
+                if (target.classList.contains('item-name')) {
+                    item.name = target.value;
+                } else if (target.classList.contains('item-price')) {
+                    item.price = target.value;
+                    updateRowCalculation(item);
+                } else if (target.classList.contains('item-quantity')) {
+                    item.quantity = target.value;
+                    updateRowCalculation(item);
+                }
+                saveState();
+            });
+
+            document.getElementById('items-tbody').addEventListener('change', (e) => {
+                const target = e.target;
+                if (target.classList.contains('item-check')) {
+                    const id = target.getAttribute('data-id');
+                    const list = getCurrentList();
+                    const item = list.items.find(i => i.id === id);
+                    if (item) {
+                        item.checked = target.checked;
+                        saveState();
+                        
+                        const tr = target.closest('tr');
+                        const nameInput = tr.querySelector('.item-name');
+                        if (item.checked) {
+                            tr.classList.add('bg-blue-50/40');
+                            nameInput.classList.add('text-slate-400', 'line-through');
+                        } else {
+                            tr.classList.remove('bg-blue-50/40');
+                            nameInput.classList.remove('text-slate-400', 'line-through');
+                        }
+                    }
+                }
+            });
+
+            // Delete single item button
+            document.getElementById('items-tbody').addEventListener('click', async (e) => {
+                const btn = e.target.closest('.btn-delete-item');
+                if (btn) {
+                    const id = btn.getAttribute('data-id');
+                    const confirm = await showConfirm('この商品を削除しますか？');
+                    if (confirm) {
+                        const list = getCurrentList();
+                        if (list) {
+                            list.items = list.items.filter(i => i.id !== id);
+                            if (list.items.length === 0) list.items.push(createEmptyItem());
+                            saveState();
+                            renderItemsTable();
+                            calculateCurrentList();
+                        }
+                    }
+                }
+            });
+            
+            // Filter inputs
+            ['filter-text', 'filter-year', 'filter-month', 'filter-date-from', 'filter-date-to'].forEach(id => {
+                document.getElementById(id).addEventListener('input', renderHistoryUI);
+            });
+            
+            document.getElementById('btn-clear-filters').addEventListener('click', () => {
+                document.getElementById('filter-text').value = '';
+                document.getElementById('filter-year').value = '';
+                document.getElementById('filter-month').value = '';
+                document.getElementById('filter-date-from').value = '';
+                document.getElementById('filter-date-to').value = '';
+                renderHistoryUI();
+            });
+
+            // Save to History button
+            document.getElementById('btn-save-history').addEventListener('click', saveCurrentListToHistory);
+            
+            // Save Image button
+            document.getElementById('btn-save-image').addEventListener('click', saveAsImage);
+            
+            // Delete all history button
+            document.getElementById('btn-delete-all-history').addEventListener('click', async () => {
+                if (state.history.length === 0) return;
+                const confirm = await showConfirm('すべての履歴を削除しますか？\nこの操作は元に戻せません。');
+                if (confirm) {
+                    state.history = [];
+                    saveState();
+                    renderHistoryUI();
+                }
+            });
+        }
+
+        function updateRowCalculation(item) {
+            const p = Number(item.price) || 0;
+            const q = Number(item.quantity) || 0;
+            const subtotal = p * q;
+            const subtotalTd = document.getElementById(`subtotal-${item.id}`);
+            if (subtotalTd) {
+                subtotalTd.textContent = formatCurrency(subtotal);
+            }
+            calculateCurrentList();
+        }
+
+        function saveCurrentListToHistory() {
+            const list = getCurrentList();
+            if (!list) return;
+            
+            let total = 0;
+            list.items.forEach(item => {
+                const p = Number(item.price) || 0;
+                const q = Number(item.quantity) || 0;
+                total += p * q;
+            });
+
+            const historyItem = {
+                id: generateId(),
+                savedAt: Date.now(),
+                listName: list.name || '名称未設定',
+                budget: list.budget !== '' ? Number(list.budget) : null,
+                total: total,
+                items: JSON.parse(JSON.stringify(list.items))
+            };
+
+            state.history.unshift(historyItem);
+            saveState();
+            
+            // Success Feedback Animation on Button
+            const btn = document.getElementById('btn-save-history');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check mr-2"></i>保存しました！';
+            btn.classList.replace('bg-green-600', 'bg-blue-600');
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.classList.replace('bg-blue-600', 'bg-green-600');
+            }, 2000);
+        }
+
+        function populateFilterOptions() {
+            const yearSelect = document.getElementById('filter-year');
+            const monthSelect = document.getElementById('filter-month');
+            
+            const currentYear = new Date().getFullYear();
+            yearSelect.innerHTML = '<option value="">すべて</option>';
+            for (let y = currentYear + 1; y >= currentYear - 5; y--) {
+                yearSelect.innerHTML += `<option value="${y}">${y}年</option>`;
+            }
+            
+            monthSelect.innerHTML = '<option value="">すべて</option>';
+            for (let m = 1; m <= 12; m++) {
+                monthSelect.innerHTML += `<option value="${m}">${m}月</option>`;
+            }
+        }
+
+        function getFilteredHistory() {
+            const text = document.getElementById('filter-text').value.toLowerCase().trim();
+            const year = document.getElementById('filter-year').value;
+            const month = document.getElementById('filter-month').value;
+            const dateFrom = document.getElementById('filter-date-from').value;
+            const dateTo = document.getElementById('filter-date-to').value;
+
+            return state.history.filter(hist => {
+                const d = new Date(hist.savedAt);
+                
+                if (dateFrom && d < new Date(dateFrom + 'T00:00:00')) return false;
+                if (dateTo && d > new Date(dateTo + 'T23:59:59')) return false;
+                
+                if (year && d.getFullYear().toString() !== year) return false;
+                if (month && (d.getMonth() + 1).toString() !== month) return false;
+                
+                if (text) {
+                    const matchName = (hist.listName || '').toLowerCase().includes(text);
+                    const matchItem = hist.items.some(item => (item.name || '').toLowerCase().includes(text));
+                    if (!matchName && !matchItem) return false;
+                }
+                
+                return true;
+            });
+        }
+
+        function calculateHistoryAggregations() {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth();
+            
+            const currentDay = now.getDay();
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - currentDay);
+            startOfWeek.setHours(0,0,0,0);
+
+            let sumWeek = 0;
+            let sumMonth = 0;
+            let sumYear = 0;
+
+            state.history.forEach(hist => {
+                const d = new Date(hist.savedAt);
+                if (d.getFullYear() === currentYear) {
+                    sumYear += hist.total;
+                    if (d.getMonth() === currentMonth) {
+                        sumMonth += hist.total;
+                    }
+                }
+                if (d >= startOfWeek) {
+                    sumWeek += hist.total;
+                }
+            });
+
+            document.getElementById('hist-sum-week').textContent = formatCurrency(sumWeek);
+            document.getElementById('hist-sum-month').textContent = formatCurrency(sumMonth);
+            document.getElementById('hist-sum-year').textContent = formatCurrency(sumYear);
+        }
+
+        function renderHistoryUI() {
+            calculateHistoryAggregations();
+            
+            const filtered = getFilteredHistory();
+            const container = document.getElementById('history-container');
+            const emptyState = document.getElementById('history-empty');
+            
+            container.innerHTML = '';
+            
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                
+                filtered.forEach(hist => {
+                    const budgetVal = hist.budget;
+                    let diffText = '';
+                    if (budgetVal === null || budgetVal === undefined) {
+                        diffText = '予算: 未設定';
+                    } else {
+                        const diff = budgetVal - hist.total;
+                        if (diff < 0) diffText = `超過: <span class="text-red-600 font-bold">${formatCurrency(Math.abs(diff))}</span>`;
+                        else diffText = `残り: <span class="text-green-600 font-bold">${formatCurrency(diff)}</span>`;
+                    }
+
+                    // Product items detail HTML
+                    let itemsHtml = '';
+                    hist.items.forEach(item => {
+                        if (!item.name && !item.price && !item.quantity) return;
+                        const p = Number(item.price) || 0;
+                        const q = Number(item.quantity) || 0;
+                        const sub = p * q;
+                        itemsHtml += `
+                            <div class="flex items-center text-sm py-1.5 border-b border-slate-100 last:border-0">
+                                <span class="w-6 text-center ${item.checked ? 'text-blue-600' : 'text-slate-300'} font-bold">
+                                    ${item.checked ? '☑' : '☐'}
+                                </span>
+                                <span class="flex-1 truncate ${item.checked ? 'line-through text-slate-400' : 'text-slate-800 font-medium'}">${escapeHtml(item.name) || '(名称未入力)'}</span>
+                                <span class="text-slate-500 px-2 text-xs">${item.price || 0}円 × ${item.quantity || 0}</span>
+                                <span class="w-24 text-right font-bold text-slate-700">${formatCurrency(sub)}</span>
+                            </div>
+                        `;
+                    });
+
+                    // Format: yyyy/mm/dd  List Name  Amount
+                    // Requirement: ▼ and × placed vertically centered in the middle of history item
+                    const card = document.createElement('div');
+                    card.className = 'bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow transition-shadow';
+                    
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between p-4">
+                            <!-- Left: Date, List Name, Total Amount -->
+                            <div class="flex-1 cursor-pointer toggle-history" data-id="${hist.id}">
+                                <div class="text-xs text-slate-500 mb-0.5 font-bold">${formatDate(hist.savedAt)}</div>
+                                <div class="font-bold text-lg text-slate-800">${escapeHtml(hist.listName)}</div>
+                                <div class="font-bold text-xl text-blue-600 mt-0.5">${formatCurrency(hist.total)}</div>
+                            </div>
+                            
+                            <!-- Right / Center-Right: Action buttons stacked vertically (▼ and ×) -->
+                            <div class="flex flex-col items-center justify-center gap-2 pl-4 border-l border-slate-200 ml-2">
+                                <button class="w-9 h-9 rounded-full bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 flex items-center justify-center transition-colors toggle-btn" data-id="${hist.id}" title="詳細を開く/閉じる">
+                                    <i class="fas fa-chevron-down text-sm"></i>
+                                </button>
+                                <button class="w-9 h-9 rounded-full bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-600 flex items-center justify-center transition-colors delete-history-btn" data-id="${hist.id}" title="削除">
+                                    <i class="fas fa-times text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- History Detail Panel -->
+                        <div class="hidden border-t border-slate-200 bg-slate-50 p-4 detail-panel" id="detail-${hist.id}">
+                            <div class="mb-4 bg-white border border-slate-200 rounded-lg p-3 shadow-inner">
+                                ${itemsHtml || '<div class="text-sm text-slate-400 text-center py-2">商品データがありません</div>'}
+                            </div>
+                            <div class="flex flex-col items-end text-sm space-y-1">
+                                <div><span class="text-slate-500 mr-2">予算:</span> <span class="font-bold">${budgetVal === null ? '未設定' : formatCurrency(budgetVal)}</span></div>
+                                <div><span class="text-slate-500 mr-2">合計:</span> <span class="font-bold text-blue-600">${formatCurrency(hist.total)}</span></div>
+                                <div class="font-bold border-t border-slate-200 pt-1 mt-1 text-slate-700">${diffText}</div>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+
+            // Expand/Collapse and Delete bindings
+            document.querySelectorAll('.toggle-history, .toggle-btn').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    const panel = document.getElementById(`detail-${id}`);
+                    if (!panel) return;
+                    const card = panel.closest('div.bg-white');
+                    const icon = card.querySelector('.toggle-btn i');
+                    
+                    if (panel.classList.contains('hidden')) {
+                        panel.classList.remove('hidden');
+                        icon.className = 'fas fa-chevron-up text-sm';
+                    } else {
+                        panel.classList.add('hidden');
+                        icon.className = 'fas fa-chevron-down text-sm';
+                    }
+                });
+            });
+
+            document.querySelectorAll('.delete-history-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const id = e.currentTarget.getAttribute('data-id');
+                    const confirm = await showConfirm('この履歴を削除しますか？');
+                    if (confirm) {
+                        state.history = state.history.filter(h => h.id !== id);
+                        saveState();
+                        renderHistoryUI();
+                    }
+                });
+            });
+        }
+
+        async function saveAsImage() {
+            const btn = document.getElementById('btn-save-image');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>生成中...';
+            btn.disabled = true;
+
+            try {
+                const captureArea = document.getElementById('capture-area');
+                
+                // Preserve current input values into HTML attributes before canvas capture
+                const inputs = captureArea.querySelectorAll('input');
+                inputs.forEach(input => {
+                    if (input.type === 'checkbox') {
+                        if (input.checked) input.setAttribute('checked', 'checked');
+                        else input.removeAttribute('checked');
+                    } else {
+                        input.setAttribute('value', input.value);
+                    }
+                });
+
+                // Hide elements marked no-print during capture
+                const noPrintElements = captureArea.querySelectorAll('.no-print');
+                noPrintElements.forEach(el => el.style.display = 'none');
+                
+                const tableContainer = captureArea.querySelector('.overflow-x-auto');
+                const originalOverflow = tableContainer.style.overflowX;
+                tableContainer.style.overflowX = 'visible';
+
+                const canvas = await html2canvas(captureArea, {
+                    scale: 2,
+                    backgroundColor: '#ffffff',
+                    windowWidth: document.body.scrollWidth
+                });
+
+                // Restore element visibility
+                noPrintElements.forEach(el => el.style.display = '');
+                tableContainer.style.overflowX = originalOverflow;
+
+                // Download image link
+                const link = document.createElement('a');
+                link.download = `買い物リスト_${formatDate(Date.now()).replace(/\//g, '')}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+            } catch (error) {
+                console.error('Image export failed:', error);
+            } finally {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }
+        }
+
+        // DOM Ready Bootstrapping
+        document.addEventListener('DOMContentLoaded', initApp);
+
+    </script>
+</body>
+</html>
