@@ -307,7 +307,7 @@
                     <div>
                         <h3 class="font-bold text-slate-800 text-base mb-1 flex items-center gap-2">
                             <i class="fas fa-coins text-amber-500"></i>
-                            予算をきめよう！
+                            予算を決めよう！
                         </h3>
                         <p class="text-xs text-slate-600 leading-relaxed font-medium">
                             「予算」に使えるお金を入れると、あと何円使えるか教えてくれるよ！使いすぎを防げるね。
@@ -509,6 +509,7 @@
                 name: '', 
                 price: '',    
                 quantity: '', 
+                url: '',
                 checked: false 
             };
         }
@@ -671,6 +672,13 @@
                             </td>
                             <td class="py-2.5 px-2 border-r border-slate-200">
                                 <input type="text" class="w-full min-w-0 bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 outline-none transition-colors item-name font-medium ${item.checked ? 'text-slate-400 line-through' : 'text-slate-800'}" data-id="${item.id}" value="${escapeHtml(item.name)}" placeholder="商品名を入力">
+                                <div class="flex items-center gap-1 mt-1 px-1">
+                                    <i class="fas fa-link text-slate-300 text-xs"></i>
+                                    <input type="url" class="w-full text-xs bg-slate-50 border border-slate-200 focus:border-blue-500 rounded px-1.5 py-0.5 outline-none item-url text-slate-600" data-id="${item.id}" value="${escapeHtml(item.url || '')}" placeholder="https://商品URL">
+                                    <a href="${item.url ? escapeHtml(item.url) : '#'}" target="_blank" rel="noopener noreferrer" class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-bold flex-shrink-0 transition-colors flex items-center gap-1 ${!item.url ? 'opacity-30 pointer-events-none' : ''} no-print" title="URLを開く" id="url-btn-${item.id}">
+                                        <i class="fas fa-external-link-alt text-[10px]"></i>
+                                    </a>
+                                </div>
                             </td>
                             <td class="py-2.5 px-2 border-r border-slate-200">
                                 <input type="number" min="0" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 outline-none text-right transition-colors item-price" data-id="${item.id}" value="${priceVal}" placeholder="0">
@@ -710,7 +718,7 @@
                 container.appendChild(tableWrapper);
 
             } else {
-                // Mobile Mode: Flexible Vertical Cards (No horizontal scrolling!)
+                // Mobile Mode: Flexible Vertical Cards
                 const cardsContainer = document.createElement('div');
                 cardsContainer.className = 'space-y-3';
                 cardsContainer.id = 'items-cards-container';
@@ -728,12 +736,21 @@
 
                     card.innerHTML = `
                         <!-- Top Bar: Checkbox, Item Name Input, Delete Button -->
-                        <div class="flex items-center gap-2 mb-2.5 pb-2 border-b border-slate-100">
+                        <div class="flex items-center gap-2 mb-1.5 pb-2 border-b border-slate-100">
                             <input type="checkbox" class="w-5 h-5 cursor-pointer item-check accent-blue-600 rounded flex-shrink-0" data-id="${item.id}" ${item.checked ? 'checked' : ''}>
                             <input type="text" class="flex-1 min-w-0 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-base outline-none transition-colors item-name font-medium ${item.checked ? 'text-slate-400 line-through' : 'text-slate-800'}" data-id="${item.id}" value="${escapeHtml(item.name)}" placeholder="商品名を入力">
                             <button class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors btn-delete-item flex-shrink-0 no-print" data-id="${item.id}" title="削除">
                                 <i class="fas fa-times text-base"></i>
                             </button>
+                        </div>
+
+                        <!-- URL Row for Mobile -->
+                        <div class="flex items-center gap-1 mb-2.5 pl-7">
+                            <i class="fas fa-link text-slate-400 text-xs"></i>
+                            <input type="url" class="flex-1 min-w-0 bg-slate-50 border border-slate-200 focus:border-blue-500 rounded-lg px-2 py-1 text-xs outline-none item-url text-slate-600" data-id="${item.id}" value="${escapeHtml(item.url || '')}" placeholder="商品ページのURL (https://...)">
+                            <a href="${item.url ? escapeHtml(item.url) : '#'}" target="_blank" rel="noopener noreferrer" class="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold rounded-lg flex items-center gap-1 flex-shrink-0 transition-colors ${!item.url ? 'opacity-30 pointer-events-none' : ''} no-print" id="url-btn-mobile-${item.id}">
+                                <i class="fas fa-external-link-alt"></i> 開く
+                            </a>
                         </div>
                         
                         <!-- Bottom Bar: Price, Quantity, Subtotal Calculation -->
@@ -834,6 +851,18 @@
 
                 if (target.classList.contains('item-name')) {
                     item.name = target.value;
+                } else if (target.classList.contains('item-url')) {
+                    item.url = target.value;
+                    const urlBtn = document.getElementById(`url-btn-${id}`) || document.getElementById(`url-btn-mobile-${id}`);
+                    if (urlBtn) {
+                        if (target.value.trim()) {
+                            urlBtn.href = target.value;
+                            urlBtn.classList.remove('opacity-30', 'pointer-events-none');
+                        } else {
+                            urlBtn.href = '#';
+                            urlBtn.classList.add('opacity-30', 'pointer-events-none');
+                        }
+                    }
                 } else if (target.classList.contains('item-price')) {
                     item.price = target.value;
                     updateRowCalculation(item);
@@ -1074,18 +1103,28 @@
                     // Product items detail HTML
                     let itemsHtml = '';
                     hist.items.forEach(item => {
-                        if (!item.name && !item.price && !item.quantity) return;
+                        if (!item.name && !item.price && !item.quantity && !item.url) return;
                         const p = Number(item.price) || 0;
                         const q = Number(item.quantity) || 0;
                         const sub = p * q;
                         itemsHtml += `
-                            <div class="flex items-center text-sm py-2 border-b border-slate-100 last:border-0 leading-normal">
-                                <span class="w-6 text-center ${item.checked ? 'text-blue-600' : 'text-slate-300'} font-bold flex-shrink-0">
-                                    ${item.checked ? '☑' : '☐'}
-                                </span>
-                                <span class="flex-1 truncate ${item.checked ? 'line-through text-slate-400' : 'text-slate-800 font-medium'} px-1 py-0.5">${escapeHtml(item.name) || '(名称未入力)'}</span>
-                                <span class="text-slate-500 px-2 text-xs flex-shrink-0">${item.price || 0}円 × ${item.quantity || 0}</span>
-                                <span class="w-24 text-right font-bold text-slate-700 flex-shrink-0">${formatCurrency(sub)}</span>
+                            <div class="py-2 border-b border-slate-100 last:border-0 leading-normal">
+                                <div class="flex items-center text-sm">
+                                    <span class="w-6 text-center ${item.checked ? 'text-blue-600' : 'text-slate-300'} font-bold flex-shrink-0">
+                                        ${item.checked ? '☑' : '☐'}
+                                    </span>
+                                    <span class="flex-1 truncate ${item.checked ? 'line-through text-slate-400' : 'text-slate-800 font-medium'} px-1 py-0.5">${escapeHtml(item.name) || '(名称未入力)'}</span>
+                                    <span class="text-slate-500 px-2 text-xs flex-shrink-0">${item.price || 0}円 × ${item.quantity || 0}</span>
+                                    <span class="w-24 text-right font-bold text-slate-700 flex-shrink-0">${formatCurrency(sub)}</span>
+                                </div>
+                                ${item.url ? `
+                                    <div class="flex items-center justify-between text-xs text-slate-500 pl-6 pr-1 mt-1 gap-2">
+                                        <span class="truncate font-mono text-blue-600 text-[11px] underline select-all break-all">${escapeHtml(item.url)}</span>
+                                        <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" class="no-print bg-blue-50 hover:bg-blue-100 text-blue-600 px-2 py-0.5 rounded font-bold transition-colors flex items-center gap-1 whitespace-nowrap flex-shrink-0">
+                                            <i class="fas fa-external-link-alt text-[10px]"></i> 開く
+                                        </a>
+                                    </div>
+                                ` : ''}
                             </div>
                         `;
                     });
@@ -1243,7 +1282,14 @@
             try {
                 // 保存対象の履歴カード全体を取得
                 const card = document.getElementById(`history-card-${histId}`);
+                const detailPanel = document.getElementById(`detail-${histId}`);
                 
+                // キャプチャのために詳細パネルを一時的に展開
+                const wasHidden = detailPanel ? detailPanel.classList.contains('hidden') : false;
+                if (wasHidden && detailPanel) {
+                    detailPanel.classList.remove('hidden');
+                }
+
                 // キャプチャ時に非表示にする要素（各ボタンやチェックボックス）を隠す
                 const noPrintElements = card.querySelectorAll('.no-print');
                 noPrintElements.forEach(el => el.style.display = 'none');
@@ -1251,23 +1297,38 @@
                 const canvas = await html2canvas(card, {
                     scale: 2,
                     backgroundColor: '#ffffff',
-                    windowWidth: document.body.scrollWidth,
+                    useCORS: true,
                     onclone: (clonedDoc) => {
                         const clonedCard = clonedDoc.getElementById(`history-card-${histId}`);
                         if (clonedCard) {
-                            // テキスト下部の切れ防止用に一時的にOverflow・Padding・LineHeightを補正
+                            // 長い商品名やURLに合わせて枠の幅を自動で拡張
+                            clonedCard.style.width = 'max-content';
+                            clonedCard.style.maxWidth = 'none';
+                            clonedCard.style.minWidth = '550px';
+                            clonedCard.style.padding = '20px';
+
+                            // 省略（...）表示を解除し、長いテキストも綺麗にはみ出さず表示
                             clonedCard.querySelectorAll('.truncate').forEach(el => {
+                                el.classList.remove('truncate');
                                 el.style.overflow = 'visible';
                                 el.style.textOverflow = 'clip';
+                                el.style.whiteSpace = 'nowrap';
                                 el.style.lineHeight = '1.5';
-                                el.style.paddingBottom = '4px';
+                            });
+
+                            // 子要素の最大幅制限を解除
+                            clonedCard.querySelectorAll('.detail-panel, div').forEach(el => {
+                                el.style.maxWidth = 'none';
                             });
                         }
                     }
                 });
 
-                // 表示を元に戻す
+                // 表示状態を元に戻す
                 noPrintElements.forEach(el => el.style.display = '');
+                if (wasHidden && detailPanel) {
+                    detailPanel.classList.add('hidden');
+                }
 
                 // ダウンロード処理
                 const link = document.createElement('a');
