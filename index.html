@@ -75,12 +75,15 @@
             </div>
 
             <!-- Navigation Header Buttons -->
-            <div class="flex justify-center sm:justify-start gap-2 pt-1">
-                <button id="nav-list" class="px-8 py-2.5 rounded-t-lg bg-white text-blue-600 font-bold shadow transition-colors text-base">
+            <div class="flex justify-center sm:justify-start gap-2 pt-1 overflow-x-auto">
+                <button id="nav-list" class="px-6 sm:px-8 py-2.5 rounded-t-lg bg-white text-blue-600 font-bold shadow transition-colors text-sm sm:text-base whitespace-nowrap">
                     <i class="fas fa-list-check mr-2"></i>リスト
                 </button>
-                <button id="nav-history" class="px-8 py-2.5 rounded-t-lg bg-blue-700 hover:bg-blue-500 text-white font-bold transition-colors text-base">
+                <button id="nav-history" class="px-6 sm:px-8 py-2.5 rounded-t-lg bg-blue-700 hover:bg-blue-500 text-white font-bold transition-colors text-sm sm:text-base whitespace-nowrap">
                     <i class="fas fa-history mr-2"></i>履歴
+                </button>
+                <button id="nav-guide" class="px-6 sm:px-8 py-2.5 rounded-t-lg bg-blue-700 hover:bg-blue-500 text-white font-bold transition-colors text-sm sm:text-base whitespace-nowrap">
+                    <i class="fas fa-book-open mr-2"></i>使い方
                 </button>
             </div>
         </div>
@@ -234,6 +237,103 @@
             </div>
         </section>
 
+        <!-- ==================== GUIDE VIEW (使い方) ==================== -->
+        <section id="view-guide" class="hidden space-y-6">
+            <!-- Header Title -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 text-center">
+                <div class="inline-flex items-center justify-center w-14 h-14 bg-amber-100 text-amber-500 rounded-full text-2xl mb-3">
+                    <i class="fas fa-lightbulb"></i>
+                </div>
+                <h2 class="text-2xl font-extrabold text-slate-800">かごめもの 使い方</h2>
+                <p class="text-slate-500 text-sm mt-1 font-bold">簡単に お買いものリストが つくれるよ！</p>
+            </div>
+
+            <!-- Steps Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <!-- Step 1 -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex gap-4 items-start">
+                    <div class="w-10 h-10 rounded-xl bg-blue-500 text-white font-extrabold flex items-center justify-center text-lg flex-shrink-0 shadow">
+                        1
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base mb-1 flex items-center gap-2">
+                            <i class="fas fa-folder-plus text-blue-500"></i>
+                            リストをつくろう！
+                        </h3>
+                        <p class="text-xs text-slate-600 leading-relaxed font-medium">
+                            上の「＋」ボタンを押すと、新しいリストが作れるよ。「スーパー」や「100円ショップ」などお店ごとに名前を変えたり、「日用品」や「雑貨」などジャンルごとに名前を変えてみよう！
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex gap-4 items-start">
+                    <div class="w-10 h-10 rounded-xl bg-green-500 text-white font-extrabold flex items-center justify-center text-lg flex-shrink-0 shadow">
+                        2
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base mb-1 flex items-center gap-2">
+                            <i class="fas fa-plus-circle text-green-500"></i>
+                            商品名を入力しよう！
+                        </h3>
+                        <p class="text-xs text-slate-600 leading-relaxed font-medium">
+                            「＋商品を追加」を押して、買いたい商品名・価格・個数を入れると、リスト内の合計を自動で計算してくれるよ！
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex gap-4 items-start">
+                    <div class="w-10 h-10 rounded-xl bg-purple-500 text-white font-extrabold flex items-center justify-center text-lg flex-shrink-0 shadow">
+                        3
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base mb-1 flex items-center gap-2">
+                            <i class="fas fa-check-square text-purple-500"></i>
+                            カゴに入れたらチェック！
+                        </h3>
+                        <p class="text-xs text-slate-600 leading-relaxed font-medium">
+                            お店で商品をカゴに入れたら「✓」を押そう！文字に線が引かれて、買い忘れがなくなるよ。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex gap-4 items-start">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500 text-white font-extrabold flex items-center justify-center text-lg flex-shrink-0 shadow">
+                        4
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base mb-1 flex items-center gap-2">
+                            <i class="fas fa-coins text-amber-500"></i>
+                            予算をきめよう！
+                        </h3>
+                        <p class="text-xs text-slate-600 leading-relaxed font-medium">
+                            「予算」に使えるお金を入れると、あと何円使えるか教えてくれるよ！使いすぎを防げるね。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 5 -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex gap-4 items-start md:col-span-2">
+                    <div class="w-10 h-10 rounded-xl bg-rose-500 text-white font-extrabold flex items-center justify-center text-lg flex-shrink-0 shadow">
+                        5
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base mb-1 flex items-center gap-2">
+                            <i class="fas fa-bookmark text-rose-500"></i>
+                            履歴に保存＆写真で保存！
+                        </h3>
+                        <p class="text-xs text-slate-600 leading-relaxed font-medium">
+                            買いものが終わったら「履歴として保存」を押そう！「履歴」タブから過去のメモを見たり、写真としてスマホやPCに保存したり、もう一度読み込んで編集することもできるよ！
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
     </main>
 
     <!-- Custom Modal for Delete / Reset Confirmations -->
@@ -349,24 +449,25 @@
             state.activeTab = tabName;
             const btnList = document.getElementById('nav-list');
             const btnHistory = document.getElementById('nav-history');
+            const btnGuide = document.getElementById('nav-guide');
             const viewList = document.getElementById('view-list');
             const viewHistory = document.getElementById('view-history');
+            const viewGuide = document.getElementById('view-guide');
+
+            const activeStyle = "px-6 sm:px-8 py-2.5 rounded-t-lg bg-white text-blue-600 font-bold shadow transition-colors text-sm sm:text-base whitespace-nowrap";
+            const inactiveStyle = "px-6 sm:px-8 py-2.5 rounded-t-lg bg-blue-700 hover:bg-blue-500 text-white font-bold transition-colors text-sm sm:text-base whitespace-nowrap";
+
+            btnList.className = tabName === 'list' ? activeStyle : inactiveStyle;
+            btnHistory.className = tabName === 'history' ? activeStyle : inactiveStyle;
+            btnGuide.className = tabName === 'guide' ? activeStyle : inactiveStyle;
+
+            viewList.classList.toggle('hidden', tabName !== 'list');
+            viewHistory.classList.toggle('hidden', tabName !== 'history');
+            viewGuide.classList.toggle('hidden', tabName !== 'guide');
 
             if (tabName === 'list') {
-                btnList.className = "px-8 py-2.5 rounded-t-lg bg-white text-blue-600 font-bold shadow transition-colors text-base";
-                btnHistory.className = "px-8 py-2.5 rounded-t-lg bg-blue-700 hover:bg-blue-500 text-white font-bold transition-colors text-base";
-                
-                viewList.classList.remove('hidden');
-                viewHistory.classList.add('hidden');
-                
                 renderListUI();
-            } else {
-                btnHistory.className = "px-8 py-2.5 rounded-t-lg bg-white text-blue-600 font-bold shadow transition-colors text-base";
-                btnList.className = "px-8 py-2.5 rounded-t-lg bg-blue-700 hover:bg-blue-500 text-white font-bold transition-colors text-base";
-                
-                viewHistory.classList.remove('hidden');
-                viewList.classList.add('hidden');
-                
+            } else if (tabName === 'history') {
                 renderHistoryUI();
             }
             saveState();
@@ -374,6 +475,7 @@
 
         document.getElementById('nav-list').addEventListener('click', () => switchTab('list'));
         document.getElementById('nav-history').addEventListener('click', () => switchTab('history'));
+        document.getElementById('nav-guide').addEventListener('click', () => switchTab('guide'));
 
         function setDisplayMode(mode) {
             state.displayMode = mode;
@@ -550,7 +652,7 @@
             if (!list) return;
 
             if (state.displayMode === 'pc') {
-                // PC Mode: Table with scroll container
+                // PC Mode: Table with scroll container & fixed table layout to prevent blowout
                 const tableWrapper = document.createElement('div');
                 tableWrapper.className = 'overflow-x-auto border border-slate-300 rounded-lg';
                 
@@ -568,7 +670,7 @@
                                 <input type="checkbox" class="w-5 h-5 cursor-pointer item-check accent-blue-600 rounded" data-id="${item.id}" ${item.checked ? 'checked' : ''}>
                             </td>
                             <td class="py-2.5 px-2 border-r border-slate-200">
-                                <input type="text" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 outline-none transition-colors item-name font-medium ${item.checked ? 'text-slate-400 line-through' : 'text-slate-800'}" data-id="${item.id}" value="${escapeHtml(item.name)}" placeholder="商品名を入力">
+                                <input type="text" class="w-full min-w-0 bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 outline-none transition-colors item-name font-medium ${item.checked ? 'text-slate-400 line-through' : 'text-slate-800'}" data-id="${item.id}" value="${escapeHtml(item.name)}" placeholder="商品名を入力">
                             </td>
                             <td class="py-2.5 px-2 border-r border-slate-200">
                                 <input type="number" min="0" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 outline-none text-right transition-colors item-price" data-id="${item.id}" value="${priceVal}" placeholder="0">
@@ -576,7 +678,7 @@
                             <td class="py-2.5 px-2 border-r border-slate-200">
                                 <input type="number" min="1" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 outline-none text-center transition-colors item-quantity" data-id="${item.id}" value="${qtyVal}" placeholder="0">
                             </td>
-                            <td class="py-2.5 px-4 text-right border-r border-slate-200 font-bold text-slate-700 item-subtotal" id="subtotal-${item.id}">
+                            <td class="py-2.5 px-4 text-right border-r border-slate-200 font-bold text-slate-700 item-subtotal truncate" id="subtotal-${item.id}">
                                 ${formatCurrency(subtotal)}
                             </td>
                             <td class="py-2.5 px-2 text-center no-print">
@@ -589,7 +691,7 @@
                 });
 
                 tableWrapper.innerHTML = `
-                    <table class="w-full text-left border-collapse whitespace-nowrap min-w-[550px]">
+                    <table class="w-full text-left border-collapse whitespace-nowrap min-w-[550px] table-fixed">
                         <thead>
                             <tr class="bg-slate-200 text-slate-700 text-sm font-bold">
                                 <th class="py-3 px-3 w-12 text-center border-b border-r border-slate-300">✓</th>
@@ -628,7 +730,7 @@
                         <!-- Top Bar: Checkbox, Item Name Input, Delete Button -->
                         <div class="flex items-center gap-2 mb-2.5 pb-2 border-b border-slate-100">
                             <input type="checkbox" class="w-5 h-5 cursor-pointer item-check accent-blue-600 rounded flex-shrink-0" data-id="${item.id}" ${item.checked ? 'checked' : ''}>
-                            <input type="text" class="flex-1 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-base outline-none transition-colors item-name font-medium ${item.checked ? 'text-slate-400 line-through' : 'text-slate-800'}" data-id="${item.id}" value="${escapeHtml(item.name)}" placeholder="商品名を入力">
+                            <input type="text" class="flex-1 min-w-0 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-base outline-none transition-colors item-name font-medium ${item.checked ? 'text-slate-400 line-through' : 'text-slate-800'}" data-id="${item.id}" value="${escapeHtml(item.name)}" placeholder="商品名を入力">
                             <button class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors btn-delete-item flex-shrink-0 no-print" data-id="${item.id}" title="削除">
                                 <i class="fas fa-times text-base"></i>
                             </button>
@@ -648,7 +750,7 @@
                             </div>
                             <div class="col-span-3 text-right">
                                 <span class="text-slate-400 text-[10px] block font-bold">小計</span>
-                                <span class="font-bold text-slate-800 text-sm item-subtotal" id="subtotal-${item.id}">${formatCurrency(subtotal)}</span>
+                                <span class="font-bold text-slate-800 text-sm item-subtotal truncate block" id="subtotal-${item.id}">${formatCurrency(subtotal)}</span>
                             </div>
                         </div>
                     `;
