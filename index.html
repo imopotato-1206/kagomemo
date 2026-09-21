@@ -977,13 +977,13 @@
                         const q = Number(item.quantity) || 0;
                         const sub = p * q;
                         itemsHtml += `
-                            <div class="flex items-center text-sm py-1.5 border-b border-slate-100 last:border-0">
-                                <span class="w-6 text-center ${item.checked ? 'text-blue-600' : 'text-slate-300'} font-bold">
+                            <div class="flex items-center text-sm py-2 border-b border-slate-100 last:border-0 leading-normal">
+                                <span class="w-6 text-center ${item.checked ? 'text-blue-600' : 'text-slate-300'} font-bold flex-shrink-0">
                                     ${item.checked ? '☑' : '☐'}
                                 </span>
-                                <span class="flex-1 truncate ${item.checked ? 'line-through text-slate-400' : 'text-slate-800 font-medium'}">${escapeHtml(item.name) || '(名称未入力)'}</span>
-                                <span class="text-slate-500 px-2 text-xs">${item.price || 0}円 × ${item.quantity || 0}</span>
-                                <span class="w-24 text-right font-bold text-slate-700">${formatCurrency(sub)}</span>
+                                <span class="flex-1 truncate ${item.checked ? 'line-through text-slate-400' : 'text-slate-800 font-medium'} px-1 py-0.5">${escapeHtml(item.name) || '(名称未入力)'}</span>
+                                <span class="text-slate-500 px-2 text-xs flex-shrink-0">${item.price || 0}円 × ${item.quantity || 0}</span>
+                                <span class="w-24 text-right font-bold text-slate-700 flex-shrink-0">${formatCurrency(sub)}</span>
                             </div>
                         `;
                     });
@@ -1028,7 +1028,10 @@
                                 <div><span class="text-slate-500 mr-2">合計:</span> <span class="font-bold text-blue-600">${formatCurrency(hist.total)}</span></div>
                                 <div class="font-bold border-t border-slate-200 pt-1 mt-1 text-slate-700">${diffText}</div>
                             </div>
-                            <div class="flex justify-end no-print">
+                            <div class="flex justify-end gap-2 no-print">
+                                <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center transition-colors shadow-sm btn-load-to-list" data-id="${hist.id}">
+                                    <i class="fas fa-edit mr-2"></i>リストに読み込んで編集
+                                </button>
                                 <button class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center transition-colors shadow-sm btn-save-history-image" data-id="${hist.id}">
                                     <i class="fas fa-camera mr-2"></i>画像として保存
                                 </button>
@@ -1084,6 +1087,15 @@
                 });
             });
 
+            // リストに読み込んで編集ボタンの処理
+            document.querySelectorAll('.btn-load-to-list').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = e.currentTarget.getAttribute('data-id');
+                    loadHistoryToList(id);
+                });
+            });
+
             // 各履歴の画像保存ボタンの処理
             document.querySelectorAll('.btn-save-history-image').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
@@ -1094,12 +1106,37 @@
             });
         }
 
+        // 履歴をリストに読み込んで編集画面に遷移する関数
+        function loadHistoryToList(histId) {
+            const hist = state.history.find(h => h.id === histId);
+            if (!hist) return;
+
+            const newList = {
+                id: generateId(),
+                name: hist.listName ? `${hist.listName}` : '編集リスト',
+                budget: hist.budget !== null && hist.budget !== undefined ? hist.budget : '',
+                items: hist.items && hist.items.length > 0 
+                    ? JSON.parse(JSON.stringify(hist.items)) 
+                    : [createEmptyItem()],
+                createdAt: Date.now()
+            };
+
+            state.lists.push(newList);
+            state.currentListId = newList.id;
+            saveState();
+
+            // リストタブへ切り替え
+            switchTab('list');
+        }
+
         // 履歴を画像として保存する関数
         async function saveHistoryAsImage(histId) {
             const btn = document.querySelector(`.btn-save-history-image[data-id="${histId}"]`);
-            const originalContent = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>生成中...';
-            btn.disabled = true;
+            const originalContent = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>生成中...';
+                btn.disabled = true;
+            }
 
             try {
                 // 保存対象の履歴カード全体を取得
@@ -1109,11 +1146,22 @@
                 const noPrintElements = card.querySelectorAll('.no-print');
                 noPrintElements.forEach(el => el.style.display = 'none');
 
-                // 高さはカードの内容（詳細が開いている状態）に自動的に合わさります
                 const canvas = await html2canvas(card, {
                     scale: 2,
                     backgroundColor: '#ffffff',
-                    windowWidth: document.body.scrollWidth
+                    windowWidth: document.body.scrollWidth,
+                    onclone: (clonedDoc) => {
+                        const clonedCard = clonedDoc.getElementById(`history-card-${histId}`);
+                        if (clonedCard) {
+                            // テキスト下部の切れ防止用に一時的にOverflow・Padding・LineHeightを補正
+                            clonedCard.querySelectorAll('.truncate').forEach(el => {
+                                el.style.overflow = 'visible';
+                                el.style.textOverflow = 'clip';
+                                el.style.lineHeight = '1.5';
+                                el.style.paddingBottom = '4px';
+                            });
+                        }
+                    }
                 });
 
                 // 表示を元に戻す
@@ -1122,16 +1170,18 @@
                 // ダウンロード処理
                 const link = document.createElement('a');
                 const hist = state.history.find(h => h.id === histId);
-                const dateStr = formatDate(hist.savedAt).replace(/\//g, '');
-                link.download = `買い物履歴_${hist.listName}_${dateStr}.png`;
+                const dateStr = formatDate(hist ? hist.savedAt : Date.now()).replace(/\//g, '');
+                link.download = `買い物履歴_${hist ? hist.listName : 'リスト'}_${dateStr}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
 
             } catch (error) {
                 console.error('Image export failed:', error);
             } finally {
-                btn.innerHTML = originalContent;
-                btn.disabled = false;
+                if (btn) {
+                    btn.innerHTML = originalContent;
+                    btn.disabled = false;
+                }
             }
         }
 
