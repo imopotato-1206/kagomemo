@@ -150,9 +150,6 @@
 
             <!-- Export / Save Action Buttons -->
             <div class="flex flex-col sm:flex-row justify-end gap-3 no-print">
-                <button id="btn-save-image" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-3 rounded-xl font-bold flex justify-center items-center transition-colors shadow-sm">
-                    <i class="fas fa-camera mr-2"></i>画像として保存
-                </button>
                 <button id="btn-save-history" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-bold flex justify-center items-center shadow-md transition-all transform hover:-translate-y-0.5">
                     <i class="fas fa-bookmark mr-2"></i>履歴として保存
                 </button>
@@ -812,9 +809,6 @@
             // Save to History button
             document.getElementById('btn-save-history').addEventListener('click', saveCurrentListToHistory);
             
-            // Save Image button
-            document.getElementById('btn-save-image').addEventListener('click', saveAsImage);
-            
             // Delete all history button
             document.getElementById('btn-delete-all-history').addEventListener('click', async () => {
                 if (state.history.length === 0) return;
@@ -855,6 +849,7 @@
                 listName: list.name || '名称未設定',
                 budget: list.budget !== '' ? Number(list.budget) : null,
                 total: total,
+                isPurchased: false, // 追加: 購入済かどうかのフラグ
                 items: JSON.parse(JSON.stringify(list.items))
             };
 
@@ -929,6 +924,9 @@
             let sumYear = 0;
 
             state.history.forEach(hist => {
+                // 購入済みチェックがついている履歴のみを集計に加算する
+                if (!hist.isPurchased) return;
+
                 const d = new Date(hist.savedAt);
                 if (d.getFullYear() === currentYear) {
                     sumYear += hist.total;
@@ -992,18 +990,25 @@
 
                     const card = document.createElement('div');
                     card.className = 'bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow transition-shadow';
+                    card.id = `history-card-${hist.id}`;
                     
                     card.innerHTML = `
                         <div class="flex items-center justify-between p-4">
-                            <!-- Left: Date, List Name, Total Amount -->
-                            <div class="flex-1 cursor-pointer toggle-history" data-id="${hist.id}">
-                                <div class="text-xs text-slate-500 mb-0.5 font-bold">${formatDate(hist.savedAt)}</div>
-                                <div class="font-bold text-lg text-slate-800">${escapeHtml(hist.listName)}</div>
-                                <div class="font-bold text-xl text-blue-600 mt-0.5">${formatCurrency(hist.total)}</div>
+                            <!-- Left: Purchased Checkbox, Date, List Name, Total Amount -->
+                            <div class="flex items-center gap-3 flex-1">
+                                <div class="flex flex-col items-center justify-center no-print">
+                                    <input type="checkbox" class="w-5 h-5 cursor-pointer history-purchased-check accent-green-600 rounded" data-id="${hist.id}" ${hist.isPurchased ? 'checked' : ''} title="購入済みにする">
+                                    <span class="text-[10px] text-slate-400 mt-1 font-bold">購入済</span>
+                                </div>
+                                <div class="flex-1 cursor-pointer toggle-history" data-id="${hist.id}">
+                                    <div class="text-xs text-slate-500 mb-0.5 font-bold">${formatDate(hist.savedAt)}</div>
+                                    <div class="font-bold text-lg text-slate-800">${escapeHtml(hist.listName)}</div>
+                                    <div class="font-bold text-xl text-blue-600 mt-0.5">${formatCurrency(hist.total)}</div>
+                                </div>
                             </div>
                             
                             <!-- Right / Center-Right: Action buttons stacked vertically (▼ and ×) -->
-                            <div class="flex flex-col items-center justify-center gap-2 pl-4 border-l border-slate-200 ml-2">
+                            <div class="flex flex-col items-center justify-center gap-2 pl-4 border-l border-slate-200 ml-2 no-print">
                                 <button class="w-9 h-9 rounded-full bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 flex items-center justify-center transition-colors toggle-btn" data-id="${hist.id}" title="詳細を開く/閉じる">
                                     <i class="fas fa-chevron-down text-sm"></i>
                                 </button>
@@ -1018,10 +1023,15 @@
                             <div class="mb-4 bg-white border border-slate-200 rounded-lg p-3 shadow-inner">
                                 ${itemsHtml || '<div class="text-sm text-slate-400 text-center py-2">商品データがありません</div>'}
                             </div>
-                            <div class="flex flex-col items-end text-sm space-y-1">
+                            <div class="flex flex-col items-end text-sm space-y-1 mb-4">
                                 <div><span class="text-slate-500 mr-2">予算:</span> <span class="font-bold">${budgetVal === null ? '未設定' : formatCurrency(budgetVal)}</span></div>
                                 <div><span class="text-slate-500 mr-2">合計:</span> <span class="font-bold text-blue-600">${formatCurrency(hist.total)}</span></div>
                                 <div class="font-bold border-t border-slate-200 pt-1 mt-1 text-slate-700">${diffText}</div>
+                            </div>
+                            <div class="flex justify-end no-print">
+                                <button class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center transition-colors shadow-sm btn-save-history-image" data-id="${hist.id}">
+                                    <i class="fas fa-camera mr-2"></i>画像として保存
+                                </button>
                             </div>
                         </div>
                     `;
@@ -1060,44 +1070,60 @@
                     }
                 });
             });
+
+            // 購入済みチェックボックスの処理
+            document.querySelectorAll('.history-purchased-check').forEach(el => {
+                el.addEventListener('change', (e) => {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    const hist = state.history.find(h => h.id === id);
+                    if (hist) {
+                        hist.isPurchased = e.currentTarget.checked;
+                        saveState();
+                        calculateHistoryAggregations();
+                    }
+                });
+            });
+
+            // 各履歴の画像保存ボタンの処理
+            document.querySelectorAll('.btn-save-history-image').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const id = e.currentTarget.getAttribute('data-id');
+                    await saveHistoryAsImage(id);
+                });
+            });
         }
 
-        async function saveAsImage() {
-            const btn = document.getElementById('btn-save-image');
+        // 履歴を画像として保存する関数
+        async function saveHistoryAsImage(histId) {
+            const btn = document.querySelector(`.btn-save-history-image[data-id="${histId}"]`);
             const originalContent = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>生成中...';
             btn.disabled = true;
 
             try {
-                const captureArea = document.getElementById('capture-area');
+                // 保存対象の履歴カード全体を取得
+                const card = document.getElementById(`history-card-${histId}`);
                 
-                // Preserve current input values into HTML attributes before canvas capture
-                const inputs = captureArea.querySelectorAll('input');
-                inputs.forEach(input => {
-                    if (input.type === 'checkbox') {
-                        if (input.checked) input.setAttribute('checked', 'checked');
-                        else input.removeAttribute('checked');
-                    } else {
-                        input.setAttribute('value', input.value);
-                    }
-                });
-
-                // Hide elements marked no-print during capture
-                const noPrintElements = captureArea.querySelectorAll('.no-print');
+                // キャプチャ時に非表示にする要素（各ボタンやチェックボックス）を隠す
+                const noPrintElements = card.querySelectorAll('.no-print');
                 noPrintElements.forEach(el => el.style.display = 'none');
 
-                const canvas = await html2canvas(captureArea, {
+                // 高さはカードの内容（詳細が開いている状態）に自動的に合わさります
+                const canvas = await html2canvas(card, {
                     scale: 2,
                     backgroundColor: '#ffffff',
                     windowWidth: document.body.scrollWidth
                 });
 
-                // Restore element visibility
+                // 表示を元に戻す
                 noPrintElements.forEach(el => el.style.display = '');
 
-                // Download image link
+                // ダウンロード処理
                 const link = document.createElement('a');
-                link.download = `買い物リスト_${formatDate(Date.now()).replace(/\//g, '')}.png`;
+                const hist = state.history.find(h => h.id === histId);
+                const dateStr = formatDate(hist.savedAt).replace(/\//g, '');
+                link.download = `買い物履歴_${hist.listName}_${dateStr}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
 
