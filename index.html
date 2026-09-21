@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>買い物リストアプリ</title>
+    <title>かごめも</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome -->
@@ -57,14 +57,25 @@
     <header class="bg-blue-600 text-white shadow-md mb-6">
         <div class="max-w-4xl mx-auto px-4 pt-4">
             <!-- Banner Image Container inside Blue Box -->
-            <div class="w-full overflow-hidden flex justify-center items-center mb-2">
+            <div class="w-full overflow-hidden flex justify-center items-center mb-3">
                 <!-- 画像の元サイズ・縦横比を保ち、青い枠内に角丸で配置 -->
                 <img src="header.png" alt="買い物リスト Header" class="max-w-full h-auto block rounded-lg" onerror="this.style.display='none'; document.getElementById('fallback-title').classList.remove('hidden');">
                 <div id="fallback-title" class="hidden py-4 text-center text-2xl font-bold text-white">買い物リスト</div>
             </div>
 
+            <!-- View Mode Switch Buttons (PC版 / スマホ版) -->
+            <div class="flex justify-center items-center gap-2 mb-3">
+                <span class="text-xs font-bold text-blue-100"><i class="fas fa-sliders mr-1"></i>画面表示:</span>
+                <button id="btn-mode-pc" class="px-3.5 py-1 text-xs font-bold rounded-full border border-white bg-white text-blue-600 transition-all shadow-sm">
+                    <i class="fas fa-desktop mr-1.5"></i>PC版画面
+                </button>
+                <button id="btn-mode-mobile" class="px-3.5 py-1 text-xs font-bold rounded-full border border-white/40 text-white hover:bg-blue-500 transition-all shadow-sm">
+                    <i class="fas fa-mobile-alt mr-1.5"></i>スマホ版画面
+                </button>
+            </div>
+
             <!-- Navigation Header Buttons -->
-            <div class="flex justify-center sm:justify-start gap-2 pt-2">
+            <div class="flex justify-center sm:justify-start gap-2 pt-1">
                 <button id="nav-list" class="px-8 py-2.5 rounded-t-lg bg-white text-blue-600 font-bold shadow transition-colors text-base">
                     <i class="fas fa-list-check mr-2"></i>リスト
                 </button>
@@ -116,26 +127,12 @@
                     </div>
                 </div>
 
-                <!-- Items Table -->
-                <div class="overflow-x-auto border border-slate-300 rounded-lg mb-6">
-                    <table class="w-full text-left border-collapse whitespace-nowrap min-w-[550px]">
-                        <thead>
-                            <tr class="bg-slate-200 text-slate-700 text-sm font-bold">
-                                <th class="py-3 px-3 w-12 text-center border-b border-r border-slate-300">✓</th>
-                                <th class="py-3 px-4 border-b border-r border-slate-300">商品名</th>
-                                <th class="py-3 px-4 w-32 border-b border-r border-slate-300 text-right">価格</th>
-                                <th class="py-3 px-4 w-24 border-b border-r border-slate-300 text-center">個数</th>
-                                <th class="py-3 px-4 w-32 border-b border-r border-slate-300 text-right">小計</th>
-                                <th class="py-3 px-3 w-12 border-b border-slate-300 text-center no-print">×</th>
-                            </tr>
-                        </thead>
-                        <tbody id="items-tbody">
-                            <!-- Rows generated dynamically -->
-                        </tbody>
-                    </table>
+                <!-- Dynamic Items Container (Renders Table for PC, Cards for Mobile) -->
+                <div id="items-container" class="mb-6">
+                    <!-- Dynamic rendering in JS depending on state.displayMode -->
                 </div>
 
-                <!-- Add Item Button (Centered below the table as requested) -->
+                <!-- Add Item Button (Centered below the table/cards as requested) -->
                 <div class="flex justify-center mb-6 no-print">
                     <button id="btn-add-item" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-full shadow-md transition-all transform hover:scale-105 flex items-center gap-2 text-base">
                         <i class="fas fa-plus text-lg"></i>
@@ -282,6 +279,7 @@
         // Application State
         let state = {
             activeTab: 'list',
+            displayMode: 'pc', // 'pc' or 'mobile'
             currentListId: null,
             lists: [],
             history: []
@@ -301,6 +299,7 @@
 
             initEventHandlers();
             populateFilterOptions();
+            updateModeSwitchButtons();
             switchTab(state.activeTab);
         }
 
@@ -311,6 +310,7 @@
                     state = JSON.parse(saved);
                     if (!state.lists) state.lists = [];
                     if (!state.history) state.history = [];
+                    if (!state.displayMode) state.displayMode = 'pc';
                 } catch (e) {
                     console.error("Failed to parse local storage", e);
                 }
@@ -378,17 +378,38 @@
         document.getElementById('nav-list').addEventListener('click', () => switchTab('list'));
         document.getElementById('nav-history').addEventListener('click', () => switchTab('history'));
 
+        function setDisplayMode(mode) {
+            state.displayMode = mode;
+            updateModeSwitchButtons();
+            saveState();
+            if (state.activeTab === 'list') {
+                renderItemsArea();
+            }
+        }
+
+        function updateModeSwitchButtons() {
+            const btnPc = document.getElementById('btn-mode-pc');
+            const btnMobile = document.getElementById('btn-mode-mobile');
+
+            if (state.displayMode === 'pc') {
+                btnPc.className = "px-3.5 py-1 text-xs font-bold rounded-full border border-white bg-white text-blue-600 transition-all shadow-sm";
+                btnMobile.className = "px-3.5 py-1 text-xs font-bold rounded-full border border-white/40 text-white hover:bg-blue-500 transition-all shadow-sm";
+            } else {
+                btnMobile.className = "px-3.5 py-1 text-xs font-bold rounded-full border border-white bg-white text-blue-600 transition-all shadow-sm";
+                btnPc.className = "px-3.5 py-1 text-xs font-bold rounded-full border border-white/40 text-white hover:bg-blue-500 transition-all shadow-sm";
+            }
+        }
+
         function getCurrentList() {
             return state.lists.find(l => l.id === state.currentListId);
         }
 
-        // Requirements: Create empty initial fields for price and quantity
         function createEmptyItem() {
             return { 
                 id: generateId(), 
                 name: '', 
-                price: '',    // 初期状態は空白
-                quantity: '', // 初期状態は空白
+                price: '',    
+                quantity: '', 
                 checked: false 
             };
         }
@@ -410,7 +431,7 @@
 
         async function deleteList(listId) {
             if (state.lists.length <= 1) {
-                return; // 最後の1つの場合は削除不可
+                return; 
             }
             const confirm = await showConfirm('このリストを削除しますか？');
             if (confirm) {
@@ -520,51 +541,125 @@
             nameInput.value = list.name || '';
             budgetInput.value = list.budget !== undefined ? list.budget : '';
 
-            renderItemsTable();
+            renderItemsArea();
             calculateCurrentList();
         }
 
-        function renderItemsTable() {
+        function renderItemsArea() {
             const list = getCurrentList();
-            const tbody = document.getElementById('items-tbody');
-            tbody.innerHTML = '';
+            const container = document.getElementById('items-container');
+            container.innerHTML = '';
 
-            list.items.forEach((item) => {
-                const priceVal = item.price !== undefined ? item.price : '';
-                const qtyVal = item.quantity !== undefined ? item.quantity : '';
+            if (!list) return;
+
+            if (state.displayMode === 'pc') {
+                // PC Mode: Table with scroll container
+                const tableWrapper = document.createElement('div');
+                tableWrapper.className = 'overflow-x-auto border border-slate-300 rounded-lg';
                 
-                const p = Number(priceVal) || 0;
-                const q = Number(qtyVal) || 0;
-                const subtotal = p * q;
-                
-                const tr = document.createElement('tr');
-                tr.className = `border-b border-slate-200 transition-colors hover:bg-slate-50 ${item.checked ? 'bg-blue-50/40' : ''}`;
-                tr.setAttribute('data-id', item.id);
-                
-                tr.innerHTML = `
-                    <td class="py-2.5 px-3 text-center border-r border-slate-200">
-                        <input type="checkbox" class="w-5 h-5 cursor-pointer item-check accent-blue-600 rounded" data-id="${item.id}" ${item.checked ? 'checked' : ''}>
-                    </td>
-                    <td class="py-2.5 px-2 border-r border-slate-200">
-                        <input type="text" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 outline-none transition-colors item-name font-medium ${item.checked ? 'text-slate-400 line-through' : 'text-slate-800'}" data-id="${item.id}" value="${escapeHtml(item.name)}" placeholder="商品名を入力">
-                    </td>
-                    <td class="py-2.5 px-2 border-r border-slate-200">
-                        <input type="number" min="0" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 outline-none text-right transition-colors item-price" data-id="${item.id}" value="${priceVal}" placeholder="0">
-                    </td>
-                    <td class="py-2.5 px-2 border-r border-slate-200">
-                        <input type="number" min="1" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 outline-none text-center transition-colors item-quantity" data-id="${item.id}" value="${qtyVal}" placeholder="0">
-                    </td>
-                    <td class="py-2.5 px-4 text-right border-r border-slate-200 font-bold text-slate-700 item-subtotal" id="subtotal-${item.id}">
-                        ${formatCurrency(subtotal)}
-                    </td>
-                    <td class="py-2.5 px-2 text-center no-print">
-                        <button class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors btn-delete-item" data-id="${item.id}" title="削除">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </td>
+                let rowsHtml = '';
+                list.items.forEach((item) => {
+                    const priceVal = item.price !== undefined ? item.price : '';
+                    const qtyVal = item.quantity !== undefined ? item.quantity : '';
+                    const p = Number(priceVal) || 0;
+                    const q = Number(qtyVal) || 0;
+                    const subtotal = p * q;
+
+                    rowsHtml += `
+                        <tr class="border-b border-slate-200 transition-colors hover:bg-slate-50 ${item.checked ? 'bg-blue-50/40' : ''}" data-id="${item.id}">
+                            <td class="py-2.5 px-3 text-center border-r border-slate-200">
+                                <input type="checkbox" class="w-5 h-5 cursor-pointer item-check accent-blue-600 rounded" data-id="${item.id}" ${item.checked ? 'checked' : ''}>
+                            </td>
+                            <td class="py-2.5 px-2 border-r border-slate-200">
+                                <input type="text" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 outline-none transition-colors item-name font-medium ${item.checked ? 'text-slate-400 line-through' : 'text-slate-800'}" data-id="${item.id}" value="${escapeHtml(item.name)}" placeholder="商品名を入力">
+                            </td>
+                            <td class="py-2.5 px-2 border-r border-slate-200">
+                                <input type="number" min="0" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 outline-none text-right transition-colors item-price" data-id="${item.id}" value="${priceVal}" placeholder="0">
+                            </td>
+                            <td class="py-2.5 px-2 border-r border-slate-200">
+                                <input type="number" min="1" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 outline-none text-center transition-colors item-quantity" data-id="${item.id}" value="${qtyVal}" placeholder="0">
+                            </td>
+                            <td class="py-2.5 px-4 text-right border-r border-slate-200 font-bold text-slate-700 item-subtotal" id="subtotal-${item.id}">
+                                ${formatCurrency(subtotal)}
+                            </td>
+                            <td class="py-2.5 px-2 text-center no-print">
+                                <button class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors btn-delete-item" data-id="${item.id}" title="削除">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                tableWrapper.innerHTML = `
+                    <table class="w-full text-left border-collapse whitespace-nowrap min-w-[550px]">
+                        <thead>
+                            <tr class="bg-slate-200 text-slate-700 text-sm font-bold">
+                                <th class="py-3 px-3 w-12 text-center border-b border-r border-slate-300">✓</th>
+                                <th class="py-3 px-4 border-b border-r border-slate-300">商品名</th>
+                                <th class="py-3 px-4 w-32 border-b border-r border-slate-300 text-right">価格</th>
+                                <th class="py-3 px-4 w-24 border-b border-r border-slate-300 text-center">個数</th>
+                                <th class="py-3 px-4 w-32 border-b border-r border-slate-300 text-right">小計</th>
+                                <th class="py-3 px-3 w-12 border-b border-slate-300 text-center no-print">×</th>
+                            </tr>
+                        </thead>
+                        <tbody id="items-tbody">
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
                 `;
-                tbody.appendChild(tr);
-            });
+                container.appendChild(tableWrapper);
+
+            } else {
+                // Mobile Mode: Flexible Vertical Cards (No horizontal scrolling!)
+                const cardsContainer = document.createElement('div');
+                cardsContainer.className = 'space-y-3';
+                cardsContainer.id = 'items-cards-container';
+
+                list.items.forEach((item) => {
+                    const priceVal = item.price !== undefined ? item.price : '';
+                    const qtyVal = item.quantity !== undefined ? item.quantity : '';
+                    const p = Number(priceVal) || 0;
+                    const q = Number(qtyVal) || 0;
+                    const subtotal = p * q;
+
+                    const card = document.createElement('div');
+                    card.className = `bg-white border rounded-xl p-3 shadow-sm transition-all hover:border-slate-300 ${item.checked ? 'bg-blue-50/40 border-blue-200' : 'border-slate-200'}`;
+                    card.setAttribute('data-id', item.id);
+
+                    card.innerHTML = `
+                        <!-- Top Bar: Checkbox, Item Name Input, Delete Button -->
+                        <div class="flex items-center gap-2 mb-2.5 pb-2 border-b border-slate-100">
+                            <input type="checkbox" class="w-5 h-5 cursor-pointer item-check accent-blue-600 rounded flex-shrink-0" data-id="${item.id}" ${item.checked ? 'checked' : ''}>
+                            <input type="text" class="flex-1 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-base outline-none transition-colors item-name font-medium ${item.checked ? 'text-slate-400 line-through' : 'text-slate-800'}" data-id="${item.id}" value="${escapeHtml(item.name)}" placeholder="商品名を入力">
+                            <button class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors btn-delete-item flex-shrink-0 no-print" data-id="${item.id}" title="削除">
+                                <i class="fas fa-times text-base"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Bottom Bar: Price, Quantity, Subtotal Calculation -->
+                        <div class="grid grid-cols-12 items-center gap-1.5 text-xs text-slate-600">
+                            <div class="col-span-5 flex items-center gap-1">
+                                <span class="text-slate-400 font-bold whitespace-nowrap">価格</span>
+                                <input type="number" min="0" class="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 rounded px-2 py-1.5 text-right outline-none item-price text-sm font-medium" data-id="${item.id}" value="${priceVal}" placeholder="0">
+                                <span>円</span>
+                            </div>
+                            <div class="col-span-1 text-center font-bold text-slate-400">×</div>
+                            <div class="col-span-3 flex items-center gap-1">
+                                <span class="text-slate-400 font-bold whitespace-nowrap">個数</span>
+                                <input type="number" min="1" class="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 rounded px-1.5 py-1.5 text-center outline-none item-quantity text-sm font-medium" data-id="${item.id}" value="${qtyVal}" placeholder="0">
+                            </div>
+                            <div class="col-span-3 text-right">
+                                <span class="text-slate-400 text-[10px] block font-bold">小計</span>
+                                <span class="font-bold text-slate-800 text-sm item-subtotal" id="subtotal-${item.id}">${formatCurrency(subtotal)}</span>
+                            </div>
+                        </div>
+                    `;
+                    cardsContainer.appendChild(card);
+                });
+
+                container.appendChild(cardsContainer);
+            }
         }
 
         function escapeHtml(unsafe) {
@@ -572,6 +667,10 @@
         }
 
         function initEventHandlers() {
+            // Mode Switch Buttons
+            document.getElementById('btn-mode-pc').addEventListener('click', () => setDisplayMode('pc'));
+            document.getElementById('btn-mode-mobile').addEventListener('click', () => setDisplayMode('mobile'));
+
             // Header Name & Budget input handlers
             document.getElementById('current-list-name').addEventListener('input', (e) => {
                 const list = getCurrentList();
@@ -591,13 +690,13 @@
                 }
             });
 
-            // Add Item button (Centered below table)
+            // Add Item button (Centered below table/cards)
             document.getElementById('btn-add-item').addEventListener('click', () => {
                 const list = getCurrentList();
                 if (list) {
                     list.items.push(createEmptyItem());
                     saveState();
-                    renderItemsTable();
+                    renderItemsArea();
                     calculateCurrentList();
                     
                     // Focus on newly created item's name field
@@ -616,14 +715,16 @@
                     if (list) {
                         list.items = [createEmptyItem()];
                         saveState();
-                        renderItemsTable();
+                        renderItemsArea();
                         calculateCurrentList();
                     }
                 }
             });
 
-            // Table Event Delegation (Input changes, Checkbox toggle, Delete item)
-            document.getElementById('items-tbody').addEventListener('input', (e) => {
+            // Event Delegation for Items Container (Works for both PC Table & Mobile Cards)
+            const itemsContainer = document.getElementById('items-container');
+
+            itemsContainer.addEventListener('input', (e) => {
                 const target = e.target;
                 const id = target.getAttribute('data-id');
                 const list = getCurrentList();
@@ -644,7 +745,7 @@
                 saveState();
             });
 
-            document.getElementById('items-tbody').addEventListener('change', (e) => {
+            itemsContainer.addEventListener('change', (e) => {
                 const target = e.target;
                 if (target.classList.contains('item-check')) {
                     const id = target.getAttribute('data-id');
@@ -654,21 +755,29 @@
                         item.checked = target.checked;
                         saveState();
                         
-                        const tr = target.closest('tr');
-                        const nameInput = tr.querySelector('.item-name');
+                        const rowOrCard = target.closest('[data-id]');
+                        const nameInput = rowOrCard.querySelector('.item-name');
                         if (item.checked) {
-                            tr.classList.add('bg-blue-50/40');
+                            if (state.displayMode === 'pc') {
+                                rowOrCard.classList.add('bg-blue-50/40');
+                            } else {
+                                rowOrCard.classList.add('bg-blue-50/40', 'border-blue-200');
+                            }
                             nameInput.classList.add('text-slate-400', 'line-through');
                         } else {
-                            tr.classList.remove('bg-blue-50/40');
+                            if (state.displayMode === 'pc') {
+                                rowOrCard.classList.remove('bg-blue-50/40');
+                            } else {
+                                rowOrCard.classList.remove('bg-blue-50/40', 'border-blue-200');
+                            }
                             nameInput.classList.remove('text-slate-400', 'line-through');
                         }
                     }
                 }
             });
 
-            // Delete single item button
-            document.getElementById('items-tbody').addEventListener('click', async (e) => {
+            // Delete single item button delegation
+            itemsContainer.addEventListener('click', async (e) => {
                 const btn = e.target.closest('.btn-delete-item');
                 if (btn) {
                     const id = btn.getAttribute('data-id');
@@ -679,7 +788,7 @@
                             list.items = list.items.filter(i => i.id !== id);
                             if (list.items.length === 0) list.items.push(createEmptyItem());
                             saveState();
-                            renderItemsTable();
+                            renderItemsArea();
                             calculateCurrentList();
                         }
                     }
@@ -722,9 +831,9 @@
             const p = Number(item.price) || 0;
             const q = Number(item.quantity) || 0;
             const subtotal = p * q;
-            const subtotalTd = document.getElementById(`subtotal-${item.id}`);
-            if (subtotalTd) {
-                subtotalTd.textContent = formatCurrency(subtotal);
+            const subtotalEl = document.getElementById(`subtotal-${item.id}`);
+            if (subtotalEl) {
+                subtotalEl.textContent = formatCurrency(subtotal);
             }
             calculateCurrentList();
         }
@@ -881,8 +990,6 @@
                         `;
                     });
 
-                    // Format: yyyy/mm/dd  List Name  Amount
-                    // Requirement: ▼ and × placed vertically centered in the middle of history item
                     const card = document.createElement('div');
                     card.className = 'bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow transition-shadow';
                     
@@ -978,10 +1085,6 @@
                 // Hide elements marked no-print during capture
                 const noPrintElements = captureArea.querySelectorAll('.no-print');
                 noPrintElements.forEach(el => el.style.display = 'none');
-                
-                const tableContainer = captureArea.querySelector('.overflow-x-auto');
-                const originalOverflow = tableContainer.style.overflowX;
-                tableContainer.style.overflowX = 'visible';
 
                 const canvas = await html2canvas(captureArea, {
                     scale: 2,
@@ -991,7 +1094,6 @@
 
                 // Restore element visibility
                 noPrintElements.forEach(el => el.style.display = '');
-                tableContainer.style.overflowX = originalOverflow;
 
                 // Download image link
                 const link = document.createElement('a');
